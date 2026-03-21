@@ -2,6 +2,7 @@ import sqlite3 as sql
 import time
 import random
 import os
+import bcrypt
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  user_management.py
@@ -26,11 +27,15 @@ def insertUser(username, password, DoB, bio=""):
     Insert a new user.
     VULNERABILITY: Password stored as plaintext — no bcrypt/argon2 hashing.
     """
+    # Adds a salt --> random data added to password
+    salt = bcrypt.gensalt()
+    # Hashing the password
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
     con = sql.connect(DB_PATH)
     cur = con.cursor()
     cur.execute(
         "INSERT INTO users (username, password, dateOfBirth, bio) VALUES (?,?,?,?)",
-        (username, password, DoB, bio),
+        (username, hashed_password.decode('utf-8'), DoB, bio),
     )
     con.commit()
     con.close()
@@ -83,7 +88,7 @@ def insertPost(author, content):
     """
     con = sql.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute(f"INSERT INTO posts (author, content) VALUES ('{author}', '{content}')")
+    cur.execute("INSERT INTO posts (author, content) VALUES ('{author}', '{content}')")
     con.commit()
     con.close()
 
@@ -108,7 +113,7 @@ def getUserProfile(username):
     """
     con = sql.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute(f"SELECT id, username, dateOfBirth, bio, role FROM users WHERE username = '{username}'")
+    cur.execute("SELECT id, username, dateOfBirth, bio, role FROM users WHERE username = ?")
     row = cur.fetchone()
     con.close()
     return row
@@ -122,7 +127,7 @@ def getMessages(username):
     """
     con = sql.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute(f"SELECT * FROM messages WHERE recipient = '{username}' ORDER BY id DESC")
+    cur.execute("SELECT * FROM messages WHERE recipient = '{username}' ORDER BY id DESC")
     rows = cur.fetchall()
     con.close()
     return rows
