@@ -141,7 +141,7 @@ def sendMessage(sender, recipient, body):
     """
     con = sql.connect(DB_PATH)
     cur = con.cursor()
-    cur.execute(f"INSERT INTO messages (sender, recipient, body) VALUES ('{sender}', '{recipient}', '{body}')")
+    cur.execute("INSERT INTO messages (sender, recipient, body) VALUES (?, ?, ?)", (sender, recipient, body))
     con.commit()
     con.close()
 

@@ -88,9 +88,7 @@ window.addEventListener('DOMContentLoaded', function () {
   const msgBox  = document.getElementById('js-msg-box');
 
   if (msg && msgBox) {
-    // VULNERABILITY: innerHTML allows arbitrary HTML/JS execution from URL param
-    // Secure fix: use textContent instead
-    msgBox.innerHTML = msg;
+    msgBox.textContent = msg;
   }
 
   // ── Highlight active nav link ──────────────────────────────────────────────
@@ -118,8 +116,7 @@ window.addEventListener('message', function (event) {
   if (event.data && event.data.action === 'setMsg') {
     const msgBox = document.getElementById('js-msg-box');
     if (msgBox) {
-      // VULNERABILITY: innerHTML again — cross-origin XSS via postMessage
-      msgBox.innerHTML = event.data.content;
+      msgBox.textContent = event.data.content;
     }
   }
 });
