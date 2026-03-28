@@ -37,13 +37,11 @@
     <!-- Compose Box -->
     <!--
       VULNERABILITY 1: No CSRF token — any site can POST to /feed.html on behalf of logged-in user.
-      VULNERABILITY 2: IDOR — 'username' is a hidden field the user controls.
-                        Changing it lets anyone post as 'admin' or any other user.
       VULNERABILITY 3: No content length limit enforced server-side.
     -->
     <div class="compose-card">
       <form action="/feed.html" method="POST">
-        <input type="hidden" name="username" value="{{ username }}" />
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <div class="form-group" style="margin-bottom:0.6rem;">
           <textarea
             name="content"

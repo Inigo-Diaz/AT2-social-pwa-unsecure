@@ -40,7 +40,7 @@
   </div>
   <div class="profile-stat">
     <span class="label">Role</span>
-    <span class="value" style="color:{% if profile[4] == 'admin' %}var(--accent){% else %}var(--success){% endif %};">
+    <span class="value {% if profile[4] == 'admin' %}role-admin{% else %}role-user{% endif %}">
       {{ profile[4] | upper if profile[4] else "USER" }}
     </span>
   </div>
