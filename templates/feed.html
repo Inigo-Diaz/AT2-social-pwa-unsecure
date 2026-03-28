@@ -29,7 +29,7 @@
   <div class="feed-main">
 
     {% if msg %}
-    <div class="msg-box mb-2" id="js-msg-box">{{ msg | safe }}</div>
+    <div class="msg-box mb-2" id="js-msg-box">{{ msg }}</div>
     {% else %}
     <div id="js-msg-box" style="display:none;"></div>
     {% endif %}
@@ -75,13 +75,13 @@
           {% endif %}
         </div>
         <!--
-          VULNERABILITY: Stored XSS
+          Stored XSS
           Post content is rendered with |safe — auto-escaping is disabled.
           Any user can post <script>alert(document.cookie)</script> and it will
           execute in the browser of EVERY user who loads the feed page.
           The payload is permanently stored in the database.
         -->
-        <div class="post-content">{{ post[2] | safe }}</div>
+        <div class="post-content">{{ post[2] }}</div>
       </div>
       {% endfor %}
     {% else %}

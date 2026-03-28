@@ -6,6 +6,8 @@ from flask import Flask, render_template, request, redirect
 from flask_cors import CORS
 import user_management as db
 
+from flask_wtf.csrf import CSRFProtect
+
 # ── Auto-bootstrap the database on every startup ──────────────────────────────
 # This ensures students never see "no such table" even if setup_db.py
 # was never manually run, or if the .db file is missing / corrupted.
@@ -46,11 +48,11 @@ init_db()
 
 app = Flask(__name__)
 
-# VULNERABILITY: Wildcard CORS — allows ANY origin to make credentialed requests
-CORS(app)
+CORS(app, origins=["https://shiny-space-chainsaw-97w5wp5465r537xwr-5000.app.github.dev/"])
 
-# VULNERABILITY: Hardcoded secret key — session cookies can be forged
-app.secret_key = "supersecretkey123"
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+
+csrf = CSRFProtect(app)
 
 
 # ── Home / Login ──────────────────────────────────────────────────────────────
@@ -62,7 +64,6 @@ def home():
     if request.method == "GET" and request.args.get("url"):
         return redirect(request.args.get("url"), code=302)
 
-    # VULNERABILITY: Reflected XSS — 'msg' rendered with |safe in template
     if request.method == "GET":
         msg = request.args.get("msg", "")
         return render_template("index.html", msg=msg)
@@ -122,11 +123,10 @@ def feed():
 @app.route("/profile")
 def profile():
     # VULNERABILITY: No authentication check — any visitor can read any profile
-    # VULNERABILITY: SQL Injection via 'user' parameter in getUserProfile()
     if request.args.get("url"):
         return redirect(request.args.get("url"), code=302)
     username = request.args.get("user", "")
-    profile_data = db.getUserProfile(username)
+    profile_data = db.getUserProfile("?", username)
     return render_template("profile.html", profile=profile_data, username=username)
 
 
