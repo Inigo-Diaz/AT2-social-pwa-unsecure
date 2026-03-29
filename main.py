@@ -50,9 +50,15 @@ app = Flask(__name__)
 
 CORS(app, origins=["https://shiny-space-chainsaw-97w5wp5465r537xwr-5000.app.github.dev/"])
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 csrf = CSRFProtect(app)
+
+# Ensure csrf_token is available in all templates
+@app.context_processor
+def inject_csrf_token():
+    from flask_wtf.csrf import generate_csrf
+    return dict(csrf_token=generate_csrf)
 
 
 # ── Home / Login ──────────────────────────────────────────────────────────────
@@ -126,7 +132,7 @@ def profile():
     if request.args.get("url"):
         return redirect(request.args.get("url"), code=302)
     username = request.args.get("user", "")
-    profile_data = db.getUserProfile("?", username)
+    profile_data = db.getUserProfile(username)
     return render_template("profile.html", profile=profile_data, username=username)
 
 
