@@ -13,7 +13,7 @@
       <div class="sidebar-links">
         <a href="/feed.html">&#128247; Feed</a>
         <a href="/profile?user={{ username }}">&#128100; Profile</a>
-        <a href="/">&#128682; Log Out</a>
+        <a href="/logout">&#128682; Log Out</a>
       </div>
     </div>
   </aside>
@@ -28,7 +28,6 @@
       -->
       <form action="/messages" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="sender" value="{{ username }}" />
         <div class="form-group">
           <label for="recipient">To</label>
           <input

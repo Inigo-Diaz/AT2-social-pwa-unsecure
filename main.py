@@ -2,7 +2,7 @@ import os
 import sys
 import sqlite3
 import subprocess
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 from flask_cors import CORS
 import user_management as db
 
@@ -51,6 +51,9 @@ app = Flask(__name__)
 CORS(app, origins=["https://shiny-space-chainsaw-97w5wp5465r537xwr-5000.app.github.dev/"])
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SESSION_COOKIE_SECURE'] = True  # Only send cookie over HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
 
 csrf = CSRFProtect(app)
 
@@ -79,6 +82,7 @@ def home():
         password = request.form["password"]
         isLoggedIn = db.retrieveUsers(username, password)
         if isLoggedIn:
+            session['username'] = username
             posts = db.getPosts()
             return render_template("feed.html", username=username, state=isLoggedIn, posts=posts)
         else:
@@ -113,27 +117,41 @@ def feed():
         return redirect(request.args.get("url"), code=302)
 
     if request.method == "POST":
+        if 'username' not in session:
+            return redirect("/")
+        username = session['username']
         post_content = request.form["content"]
-        # VULNERABILITY: IDOR — username from hidden form field, can be tampered with
-        username = request.form.get("username", "Anonymous")
         db.insertPost(username, post_content)
         posts = db.getPosts()
         return render_template("feed.html", username=username, state=True, posts=posts)
     else:
+        if 'username' not in session:
+            return redirect("/")
+        username = session['username']
         posts = db.getPosts()
-        return render_template("feed.html", username="Guest", state=True, posts=posts)
+        return render_template("feed.html", username=username, state=True, posts=posts)
 
 
 # ── User Profile ──────────────────────────────────────────────────────────────
 
 @app.route("/profile")
 def profile():
-    # VULNERABILITY: No authentication check — any visitor can read any profile
+    # FIXED: IDOR — require authentication to view profiles
+    if 'username' not in session:
+        return redirect("/")
+    
     if request.args.get("url"):
         return redirect(request.args.get("url"), code=302)
-    username = request.args.get("user", "")
-    profile_data = db.getUserProfile(username)
-    return render_template("profile.html", profile=profile_data, username=username)
+    
+    # FIXED: Only allow users to view their own profile (or implement proper authorization)
+    requested_user = request.args.get("user", "")
+    current_user = session['username']
+    
+    if requested_user != current_user:
+        return render_template("profile.html", profile=None, username=current_user)
+    
+    profile_data = db.getUserProfile(requested_user)
+    return render_template("profile.html", profile=profile_data, username=current_user)
 
 
 # ── Direct Messages ───────────────────────────────────────────────────────────
@@ -141,17 +159,36 @@ def profile():
 @app.route("/messages", methods=["POST", "GET"])
 def messages():
     # VULNERABILITY: No authentication — change ?user= to read anyone's inbox
+    # FIXED: Require authentication to access messages
+    if 'username' not in session:
+        return redirect("/")
+    
+    current_user = session['username']
+    
     if request.method == "POST":
-        sender    = request.form.get("sender", "Anonymous")
+        # FIXED: IDOR — get sender from session instead of form field
+        sender = current_user
         recipient = request.form.get("recipient", "")
-        body      = request.form.get("body", "")
+        body = request.form.get("body", "")
         db.sendMessage(sender, recipient, body)
-        msgs = db.getMessages(recipient)
-        return render_template("messages.html", messages=msgs, username=sender, recipient=recipient)
+        msgs = db.getMessages(current_user)
+        return render_template("messages.html", messages=msgs, username=current_user, recipient=recipient)
     else:
-        username = request.args.get("user", "Guest")
-        msgs = db.getMessages(username)
-        return render_template("messages.html", messages=msgs, username=username, recipient=username)
+        # FIXED: Only allow users to view their own messages
+        requested_user = request.args.get("user", "")
+        if requested_user != current_user:
+            return redirect(f"/messages?user={current_user}")
+        
+        msgs = db.getMessages(current_user)
+        return render_template("messages.html", messages=msgs, username=current_user, recipient=current_user)
+
+
+# ── Logout ────────────────────────────────────────────────────────────────────
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
 
 
 # ── Success Page ──────────────────────────────────────────────────────────────

@@ -18,14 +18,7 @@
     {{ profile[3] | safe if profile[3] else "No bio set." }}
   </p>
 
-  <div class="profile-stat">
-    <span class="label">User ID</span>
-    <!--
-      VULNERABILITY: Exposes internal database row ID — aids IDOR attacks.
-      Attacker can enumerate /profile?id=1, /profile?id=2 to discover all users.
-    -->
-    <span class="value">{{ profile[0] }}</span>
-  </div>
+  <!-- FIXED: User ID hidden to prevent IDOR enumeration attacks -->
   <div class="profile-stat">
     <span class="label">Username</span>
     <span class="value">{{ profile[1] }}</span>
